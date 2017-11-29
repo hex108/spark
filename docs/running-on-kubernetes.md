@@ -9,7 +9,7 @@ Spark can run on clusters managed by [Kubernetes](https://kubernetes.io). This f
 
 # Prerequisites
 
-* A spark distribution with Kubernetes.
+* A distribution of Spark 2.3 or above.
 * A running Kubernetes cluster with access configured to it using
 [kubectl](https://kubernetes.io/docs/user-guide/prereqs/).  If you do not already have a working Kubernetes cluster,
 you may setup a test cluster on your local machine using
@@ -21,8 +21,7 @@ you may setup a test cluster on your local machine using
 by running `kubectl auth can-i <list|create|edit|delete> pods`.
   * The service account credentials used by the driver pods must have appropriate permissions
   as well for editing pod spec.
-* You must have [Kubernetes DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) configured in
-your cluster.
+* You must have [Kubernetes DNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) configured in your cluster.
 
 # How it works
 
@@ -30,11 +29,10 @@ your cluster.
   <img src="img/k8s-cluster-mode.png" title="Spark cluster components" alt="Spark cluster components" />
 </p>
 
-spark-submit can be directly used to submit a Spark application to a Kubernetes cluster. The mechanism by which this
-happens is as follows:
+spark-submit can be directly used to submit a Spark application to a Kubernetes cluster. The mechanism by which spark-submit happens is as follows:
 
 * Spark creates a spark driver running within a [Kubernetes pod](https://kubernetes.io/docs/concepts/workloads/pods/pod/).
-* The driver creates more executors which are also Kubernetes pods and connects to them, and executes application code.
+* The driver creates executors which are also Kubernetes pods and connects to them, and executes application code.
 * When the application completes, the executor pods terminate and are cleaned up, but the driver pod persists
 logs and remains in "completed" state in the Kubernetes API till it's eventually garbage collected or manually cleaned up.
 
@@ -100,8 +98,10 @@ connect without TLS on a different port, the master would be set to `k8s://http:
 
 If you have a Kubernetes cluster setup, one way to discover the apiserver URL is by executing `kubectl cluster-info`.
 
-    kubectl cluster-info
-    Kubernetes master is running at http://127.0.0.1:6443
+```bash
+kubectl cluster-info
+Kubernetes master is running at http://127.0.0.1:6443
+```
 
 In the above example, the specific Kubernetes cluster can be used with spark submit by specifying
 `--master k8s://http://127.0.0.1:6443` as an argument to spark-submit. Additionally, it is also possible to use the
@@ -109,7 +109,9 @@ authenticating proxy, `kubectl proxy` to communicate to the Kubernetes API.
 
 The local proxy can be started by:
 
-     kubectl proxy
+```bash
+ kubectl proxy
+```
 
 If the local proxy is running at localhost:8001, `--master k8s://http://127.0.0.1:8001` can be used as the argument to
 spark-submit. Finally, notice that in the above example we specify a jar with a specific URI with a scheme of `local://`.
@@ -132,7 +134,9 @@ take actions.
 Logs can be accessed using the kubernetes API and the `kubectl` CLI. When a Spark application is running, it's possible
 to stream logs from the application using:
 
-    kubectl -n=<namespace> logs -f <driver-pod-name>
+```bash
+kubectl -n=<namespace> logs -f <driver-pod-name>
+```
 
 The same logs can also be accessed through the
 [kubernetes dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/) if installed on
@@ -143,7 +147,9 @@ the cluster.
 The UI associated with any application can be accessed locally using
 [`kubectl port-forward`](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#forward-a-local-port-to-a-port-on-the-pod).
 
-    kubectl port-forward <driver-pod-name> 4040:4040
+```bash
+kubectl port-forward <driver-pod-name> 4040:4040
+```
 
 Then, the spark driver UI can be accessed on `http://localhost:4040`.
 
@@ -155,14 +161,19 @@ are errors during the running of the application, often, the best way to investi
 
 To get some basic information about the scheduling decisions made around the driver pod, you can run:
 
-    kubectl describe pod <spark-driver-pod>
+```bash
+kubectl describe pod <spark-driver-pod>
+```
 
 If the pod has encountered a runtime error, the status can be probed further using:
 
-    kubectl logs <spark-driver-pod>
+```bash
+kubectl logs <spark-driver-pod>
+```
 
-Finally, deleting the driver pod will clean up the entire spark application, includling all executors, associated
-service, etc. The driver pod can be thought of as the Kubernetes representation of the spark application.
+Status and logs of failed executor pods can be checked in similar ways. Finally, deleting the driver pod will clean up the entire spark 
+application, includling all executors, associated service, etc. The driver pod can be thought of as the Kubernetes representation of 
+the spark application.
 
 ## Kubernetes Features
 
@@ -171,7 +182,7 @@ service, etc. The driver pod can be thought of as the Kubernetes representation 
 Kubernetes has the concept of [namespaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/).
 Namespaces are a way to divide cluster resources between multiple users (via resource quota). Spark on Kubernetes can
 use namespaces to launch spark applications. This is through the `--kubernetes-namespace` or equivalently the
-`--spark.kubernetes.namespace` argument to spark-submit.
+`--conf spark.kubernetes.namespace` argument to spark-submit.
 
 Kubernetes allows using [ResourceQuota](https://kubernetes.io/docs/concepts/policy/resource-quotas/) to set limits on
 resources, number of objects, etc on individual namespaces. Namespaces and ResourceQuota can be used in combination by
@@ -205,7 +216,7 @@ to use the `spark` service account, a user simply adds the following option to t
 To create a custom service account, a user can use the `kubectl create serviceaccount` command. For example, the
 following command creates a service account named `spark`:
 
-```
+```bash
 kubectl create serviceaccount spark
 ```
 
@@ -214,7 +225,7 @@ a `RoleBinding` or `ClusterRoleBinding`, a user can use the `kubectl create role
 for `ClusterRoleBinding`) command. For example, the following command creates an `edit` `ClusterRole` in the `default`
 namespace and grants it to the `spark` service account created above:
 
-```
+```bash
 kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default
 ```
 
@@ -237,12 +248,12 @@ There are several Spark on Kubernetes features that are currently being incubate
 future versions of the spark-kubernetes integration.
 
 Some of these include:
-* PySpark support
-* R support
+* PySpark
+* R
 * Dynamic Executor Scaling
-* Local file dependency management
+* Local File Dependency Management
 
-You can refer to the [documentation}(https://apache-spark-on-k8s.github.io/userdocs/) if you want to try these features
+You can refer to the [documentation](https://apache-spark-on-k8s.github.io/userdocs/) if you want to try these features
 and provide feedback to the development team.
 
 # Configuration
