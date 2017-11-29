@@ -5,12 +5,13 @@ title: Running Spark on Kubernetes
 * This will become a table of contents (this text will be scraped).
 {:toc}
 
-Spark can run on clusters managed by [Kubernetes](https://kubernetes.io). This feature is currently experimental.
+Spark can run on clusters managed by [Kubernetes](https://kubernetes.io). This features makes use of the new experimental native
+Kubernetes scheduler that has been added to Spark.
 
 # Prerequisites
 
 * A distribution of Spark 2.3 or above.
-* A running Kubernetes cluster with access configured to it using
+* A running Kubernetes cluster at version >= 1.6 with access configured to it using
 [kubectl](https://kubernetes.io/docs/user-guide/prereqs/).  If you do not already have a working Kubernetes cluster,
 you may setup a test cluster on your local machine using
 [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
