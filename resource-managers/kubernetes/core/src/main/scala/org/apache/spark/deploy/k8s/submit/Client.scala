@@ -20,6 +20,7 @@ import java.util.{Collections, UUID}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.util.control.NonFatal
 
 import io.fabric8.kubernetes.api.model._
 import io.fabric8.kubernetes.client.KubernetesClient
@@ -137,10 +138,10 @@ private[spark] class Client(
       .build()
 
     Utils.tryWithResource(
-        kubernetesClient
-          .pods()
-          .withName(resolvedDriverPod.getMetadata.getName)
-          .watch(loggingPodStatusWatcher)) { _ =>
+      kubernetesClient
+        .pods()
+        .withName(resolvedDriverPod.getMetadata.getName)
+        .watch(loggingPodStatusWatcher)) { _ =>
       val createdDriverPod = kubernetesClient.pods().create(resolvedDriverPod)
       try {
         if (currentDriverSpec.otherKubernetesResources.nonEmpty) {
@@ -149,7 +150,7 @@ private[spark] class Client(
           kubernetesClient.resourceList(otherKubernetesResources: _*).createOrReplace()
         }
       } catch {
-        case e: Throwable =>
+        case NonFatal(e) =>
           kubernetesClient.pods().delete(createdDriverPod)
           throw e
       }
