@@ -24,7 +24,7 @@ import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.deploy.k8s.{ConfigurationUtils, HadoopConfBootstrap, HadoopConfSparkUserBootstrap, InitContainerResourceStagingServerSecretPlugin, KerberosTokenConfBootstrap, PodWithDetachedInitContainer, PodWithMainContainer, SparkPodInitContainerBootstrap}
 import org.apache.spark.deploy.k8s.config._
 import org.apache.spark.deploy.k8s.constants._
-import org.apache.spark.deploy.k8s.submit.{InitContainerUtil, MountSecretsBootstrap, MountSmallFilesBootstrap}
+import org.apache.spark.deploy.k8s.submit.{InitContainerUtil, MountHadoopConfStep, MountSecretsBootstrap, MountSmallFilesBootstrap}
 import org.apache.spark.util.Utils
 
 // Configures executor pods. Construct one of these with a SparkConf to set up properties that are
@@ -47,6 +47,7 @@ private[spark] class ExecutorPodFactoryImpl(
     executorInitContainerBootstrap: Option[SparkPodInitContainerBootstrap],
     executorInitContainerMountSecretsBootstrap: Option[MountSecretsBootstrap],
     executorMountInitContainerSecretPlugin: Option[InitContainerResourceStagingServerSecretPlugin],
+    executorInitContainerMountHadoopConfBootstrap: Option[MountHadoopConfStep],
     executorLocalDirVolumeProvider: ExecutorLocalDirVolumeProvider,
     hadoopBootStrap: Option[HadoopConfBootstrap],
     kerberosBootstrap: Option[KerberosTokenConfBootstrap],
@@ -256,10 +257,16 @@ private[spark] class ExecutorPodFactoryImpl(
               podWithDetachedInitContainer.initContainer)
         }.getOrElse(podWithDetachedInitContainer.initContainer)
 
+        val maybeInitContainerWithHadoopConfMounted =
+          executorInitContainerMountHadoopConfBootstrap.map { bootstrap =>
+            bootstrap.mountHadoopConf(resolvedInitContainer)
+        }.getOrElse(resolvedInitContainer)
+
         val (mayBePodWithSecretsMountedToInitContainer, mayBeInitContainerWithSecretsMounted) =
           executorInitContainerMountSecretsBootstrap.map { bootstrap =>
-            bootstrap.mountSecrets(podWithDetachedInitContainer.pod, resolvedInitContainer)
-        }.getOrElse(podWithDetachedInitContainer.pod, resolvedInitContainer)
+            bootstrap.mountSecrets(podWithDetachedInitContainer.pod,
+              maybeInitContainerWithHadoopConfMounted)
+        }.getOrElse(podWithDetachedInitContainer.pod, maybeInitContainerWithHadoopConfMounted)
 
         val podWithAttachedInitContainer = InitContainerUtil.appendInitContainer(
           mayBePodWithSecretsMountedToInitContainer, mayBeInitContainerWithSecretsMounted)

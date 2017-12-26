@@ -24,7 +24,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.deploy.k8s.{ConfigurationUtils, HadoopConfBootstrapImpl, HadoopConfSparkUserBootstrapImpl, HadoopUGIUtilImpl, InitContainerResourceStagingServerSecretPluginImpl, KerberosTokenConfBootstrapImpl, SparkKubernetesClientFactory, SparkPodInitContainerBootstrapImpl}
 import org.apache.spark.deploy.k8s.config._
 import org.apache.spark.deploy.k8s.constants._
-import org.apache.spark.deploy.k8s.submit.{MountSecretsBootstrapImpl, MountSmallFilesBootstrapImpl}
+import org.apache.spark.deploy.k8s.submit.{MountHadoopConfStepImpl, MountSecretsBootstrapImpl, MountSmallFilesBootstrapImpl}
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.netty.SparkTransportConf
 import org.apache.spark.network.shuffle.kubernetes.KubernetesExternalShuffleClientImpl
@@ -135,6 +135,11 @@ private[spark] class KubernetesClusterManager extends ExternalClusterManager wit
     } else {
       None
     }
+    val executorInitContainerMountHadoopConfBootstrap = if (hadoopBootStrap.isDefined) {
+      Some(new MountHadoopConfStepImpl)
+    } else {
+      None
+    }
 
     if (maybeInitContainerConfigMap.isEmpty) {
       logWarning("The executor's init-container config map was not specified. Executors will" +
@@ -181,6 +186,7 @@ private[spark] class KubernetesClusterManager extends ExternalClusterManager wit
         executorInitContainerBootstrap,
         executorInitContainerMountSecretsBootstrap,
         executorInitContainerSecretVolumePlugin,
+        executorInitContainerMountHadoopConfBootstrap,
         executorLocalDirVolumeProvider,
         hadoopBootStrap,
         kerberosBootstrap,

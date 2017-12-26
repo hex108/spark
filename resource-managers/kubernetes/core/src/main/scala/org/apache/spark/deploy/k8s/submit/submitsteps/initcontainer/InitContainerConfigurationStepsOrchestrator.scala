@@ -20,7 +20,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.deploy.k8s.{ConfigurationUtils, InitContainerResourceStagingServerSecretPluginImpl, OptionRequirements, SparkPodInitContainerBootstrapImpl}
 import org.apache.spark.deploy.k8s.config._
 import org.apache.spark.deploy.k8s.constants._
-import org.apache.spark.deploy.k8s.submit.{KubernetesFileUtils, MountSecretsBootstrapImpl, SubmittedDependencyUploaderImpl}
+import org.apache.spark.deploy.k8s.submit.{KubernetesFileUtils, MountHadoopConfStepImpl, MountSecretsBootstrapImpl, SubmittedDependencyUploaderImpl}
 import org.apache.spark.deploy.rest.k8s.{ResourceStagingServerSslOptionsProviderImpl, RetrofitClientFactoryImpl}
 import org.apache.spark.util.Utils
 
@@ -38,7 +38,8 @@ private[spark] class InitContainerConfigurationStepsOrchestrator(
     driverLabels: Map[String, String],
     initContainerConfigMapName: String,
     initContainerConfigMapKey: String,
-    submissionSparkConf: SparkConf) {
+    submissionSparkConf: SparkConf,
+    hadoopConfEnabled: Boolean = false) {
 
   private val submittedResourcesSecretName = s"$kubernetesResourceNamePrefix-init-secret"
   private val resourceStagingServerUri = submissionSparkConf.get(RESOURCE_STAGING_SERVER_URI)
@@ -146,8 +147,16 @@ private[spark] class InitContainerConfigurationStepsOrchestrator(
       None
     }
 
+    val mountHadoopConfStep = if (hadoopConfEnabled) {
+      val mountHadoopConfStep = new MountHadoopConfStepImpl
+      Some(new InitContainerMountHadoopConfStep(mountHadoopConfStep))
+    } else {
+      None
+    }
+
     Seq(baseInitContainerStep) ++
       submittedResourcesInitContainerStep.toSeq ++
-      mountSecretsStep.toSeq
+      mountSecretsStep.toSeq ++
+      mountHadoopConfStep.toSeq
   }
 }

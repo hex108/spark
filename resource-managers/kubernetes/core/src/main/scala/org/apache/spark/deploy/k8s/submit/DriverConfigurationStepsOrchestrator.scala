@@ -183,7 +183,8 @@ private[spark] class DriverConfigurationStepsOrchestrator(
                 allDriverLabels,
                 initContainerConfigMapName,
                 INIT_CONTAINER_CONFIG_MAP_KEY,
-                submissionSparkConf)
+                submissionSparkConf,
+                hadoopConfDir.isDefined)
             val initContainerConfigurationSteps =
               initContainerConfigurationStepsOrchestrator.getAllConfigurationSteps()
             Some(new InitContainerBootstrapStep(initContainerConfigurationSteps,
